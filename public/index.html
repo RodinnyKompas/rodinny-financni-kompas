@@ -1,0 +1,1569 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rodinný finanční kompas</title>
+<style>
+:root{
+  --bg:#f6f7f9;--card:#fff;--text:#1f2937;--muted:#6b7280;--line:#e5e7eb;
+  --accent:#315d8c;--accent-soft:#eaf1f8;--danger:#b94a48;--radius:16px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-weight:400}
+button,input,select{font:inherit}
+.app{max-width:760px;margin:0 auto;padding:18px 14px 40px}
+header{padding:8px 4px 18px}
+h1{margin:0;font-size:25px;font-weight:650;letter-spacing:-.02em}
+.subtitle{margin-top:4px;color:var(--muted);font-size:14px}
+.tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;background:#e9edf2;padding:5px;border-radius:14px;margin-bottom:14px}
+.tab{border:0;background:transparent;border-radius:10px;padding:11px 6px;color:var(--muted);font-weight:550;cursor:pointer}
+.tab.active{background:#fff;color:var(--text);box-shadow:0 1px 4px #00000012}
+.page{display:none}.page.active{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.section-title{font-size:17px;font-weight:650;margin-bottom:12px}
+label{display:block;font-size:13px;font-weight:500;margin:10px 0 6px}
+input,select{width:100%;border:1px solid #d7dce2;border-radius:10px;background:#fff;padding:11px 12px;min-height:44px;outline:none}
+input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.primary{width:100%;border:0;border-radius:11px;background:var(--accent);color:#fff;padding:12px;min-height:44px;font-weight:600;cursor:pointer}
+.secondary{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 10px;cursor:pointer}
+.danger{border:0;background:transparent;color:var(--danger);padding:8px;cursor:pointer}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.big{font-size:28px;font-weight:650;letter-spacing:-.02em}
+.metric{min-height:105px;display:flex;flex-direction:column;justify-content:center}
+.metric .name{font-size:13px;color:var(--muted);margin-bottom:7px}
+.safe{background:var(--accent-soft);border-color:#d5e2ef}
+.safe .big{font-size:32px}
+.note{font-size:12px;color:var(--muted);line-height:1.45;margin-top:8px}
+.empty{padding:18px 4px;color:var(--muted);text-align:center;font-size:14px}
+.expenses-wrap{max-height:62vh;overflow:auto;padding-right:2px}
+.month-head{position:sticky;top:0;background:var(--card);z-index:2;padding:4px 0 10px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.expense-group{border:1px solid var(--line);border-radius:12px;margin:8px 0;overflow:hidden}
+.group-head{width:100%;border:0;background:#fff;padding:12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;text-align:left}
+.group-title{font-weight:600}.group-total{font-weight:600}
+.group-body{display:none;border-top:1px solid var(--line)}.expense-group.open .group-body{display:block}
+.expense-row{display:grid;grid-template-columns:1fr auto;gap:8px;padding:11px 12px;border-bottom:1px solid var(--line)}
+.expense-row:last-child{border-bottom:0}
+.expense-name{font-size:14px}.expense-meta{font-size:12px;color:var(--muted);margin-top:3px}
+.expense-amount{font-weight:600;white-space:nowrap}
+.row-actions{margin-top:6px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.save-row{margin-top:12px}
+.pig{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 0;border-bottom:1px solid var(--line)}
+.pig:last-child{border-bottom:0}
+.pig-name{font-weight:600}.pig-meta{font-size:12px;color:var(--muted);margin-top:3px}
+.pig-amount{font-weight:650;white-space:nowrap}
+.small-actions{display:flex;gap:5px;margin-top:5px}
+.hidden{display:none!important}
+@media(max-width:520px){.app{padding:12px 10px 28px}h1{font-size:22px}.grid{grid-template-columns:1fr 1fr}.big{font-size:24px}.safe .big{font-size:28px}.tabs{position:sticky;top:6px;z-index:10}}
+</style>
+
+<style id="compact-rows-only">
+/* Pouze kompaktnější řádky – ostatní vzhled a funkce beze změny. */
+.kompas-app .row,
+.kompas-app .expense-row,
+.kompas-app .payment-row,
+.kompas-app .item-row {
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+}
+.kompas-app input,
+.kompas-app select,
+.kompas-app textarea {
+  min-height: 38px !important;
+  padding-top: 7px !important;
+  padding-bottom: 7px !important;
+}
+.kompas-app button {
+  min-height: 38px !important;
+  padding-top: 7px !important;
+  padding-bottom: 7px !important;
+}
+.kompas-app .card,
+.kompas-app .section,
+.kompas-app .panel {
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+}
+</style>
+
+
+<style id="compact-forms-fallback">
+input, select, textarea { min-height: 38px; padding-top: 7px; padding-bottom: 7px; }
+button { min-height: 38px; padding-top: 7px; padding-bottom: 7px; }
+</style>
+
+
+<style id="warm-safe-design-only">
+/* Pouze vizuální úprava: teplejší, klidnější a bezpečně působící vzhled. */
+:root {
+  --warm-bg: #f7f3ec;
+  --warm-surface: #fffdf9;
+  --warm-surface-2: #f3eee5;
+  --warm-border: #e3d9ca;
+  --warm-text: #3f403c;
+  --warm-muted: #77756e;
+  --warm-accent: #8b9b78;
+  --warm-accent-dark: #687858;
+  --warm-soft: #e8eee1;
+}
+
+body {
+  background: var(--warm-bg) !important;
+  color: var(--warm-text) !important;
+}
+
+.kompas-app {
+  color: var(--warm-text) !important;
+}
+
+.kompas-app .card,
+.kompas-app .section,
+.kompas-app .panel {
+  background: var(--warm-surface) !important;
+  border-color: var(--warm-border) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 2px 10px rgba(74, 65, 52, .06) !important;
+}
+
+.kompas-app input,
+.kompas-app select,
+.kompas-app textarea {
+  background: #fffefa !important;
+  color: var(--warm-text) !important;
+  border-color: var(--warm-border) !important;
+  border-radius: 9px !important;
+}
+
+.kompas-app input:focus,
+.kompas-app select:focus,
+.kompas-app textarea:focus {
+  border-color: var(--warm-accent) !important;
+  box-shadow: 0 0 0 3px rgba(139,155,120,.16) !important;
+  outline: none !important;
+}
+
+.kompas-app button {
+  border-radius: 9px !important;
+}
+
+.kompas-app button:not(.danger):not(.delete):not([class*="red"]) {
+  border-color: var(--warm-accent) !important;
+}
+
+.kompas-app .tab,
+.kompas-app [role="tab"] {
+  color: var(--warm-muted) !important;
+}
+
+.kompas-app .tab.active,
+.kompas-app [role="tab"][aria-selected="true"] {
+  color: var(--warm-accent-dark) !important;
+  background: var(--warm-soft) !important;
+}
+
+.kompas-app h1,
+.kompas-app h2,
+.kompas-app h3 {
+  color: #4a4a43 !important;
+}
+
+.kompas-app .muted,
+.kompas-app small,
+.kompas-app .hint {
+  color: var(--warm-muted) !important;
+}
+
+/* Jemný teplý akcent pro hlavní zvýrazněné částky. */
+.kompas-app .highlight,
+.kompas-app .summary,
+.kompas-app .total {
+  background: var(--warm-soft) !important;
+  border-color: #d7dfce !important;
+}
+</style>
+
+
+<style id="expenses-clean-compact-only">
+/* Jen úprava rozvržení stránky Výdaje – funkce a výpočty beze změny. */
+#expenses .card { padding: 10px !important; margin-bottom: 8px !important; border-radius: 11px !important; }
+#expenses .section-title { font-size: 15px !important; margin-bottom: 7px !important; }
+#expenses label { font-size: 12px !important; margin: 6px 0 4px !important; }
+#expenses input, #expenses select { min-height: 36px !important; height: 36px !important; padding: 6px 9px !important; border-radius: 18px !important; }
+#expenses .form-row { gap: 6px !important; }
+#expenses .save-row { margin-top: 8px !important; }
+#expenses .primary { min-height: 36px !important; padding: 7px 10px !important; border-radius: 18px !important; }
+#expenses .note { font-size: 11px !important; line-height: 1.35 !important; margin-top: 5px !important; }
+#expenses .expenses-wrap { max-height: none !important; overflow: visible !important; padding-right: 0 !important; }
+#expenses .expense-group { margin: 5px 0 !important; border-radius: 11px !important; }
+#expenses .group-head { padding: 8px 10px !important; }
+#expenses .expense-row { padding: 7px 10px !important; gap: 6px !important; }
+#expenses .expense-name { font-size: 13px !important; }
+#expenses .expense-meta { font-size: 11px !important; margin-top: 2px !important; }
+#expenses .expense-amount { font-size: 13px !important; }
+#expenses .row-actions { margin-top: 3px !important; }
+#expenses .secondary, #expenses .danger { padding: 5px 7px !important; font-size: 12px !important; }
+#expenses .month-head { padding: 2px 0 6px !important; margin-bottom: 4px !important; }
+#expenses .pig { padding: 7px 0 !important; }
+#expenses .small-actions { margin-top: 3px !important; }
+/* Kategorie je jedna souvislá „bublina“, bez dojmu rozsekaných polí. */
+#expenseCategory { appearance: auto; background: #fffefa !important; border: 1px solid #e3d9ca !important; border-radius: 18px !important; }
+</style>
+
+<style id="vydaje-sjednotit-jednotku">
+/* Jen vzhled sekce Výdaje: formulář + nadpis Výdaje tvoří jeden celek. */
+.kompas-app .expense-section,
+.kompas-app .vydaje-section,
+.kompas-app section:has(h2:first-child),
+.kompas-app section:has(h3:first-child) {
+  gap: 6px !important;
+}
+
+.kompas-app .expense-section > .card:first-child,
+.kompas-app .vydaje-section > .card:first-child {
+  margin-bottom: 0 !important;
+}
+
+.kompas-app .expense-section > .card + .card,
+.kompas-app .vydaje-section > .card + .card {
+  margin-top: 0 !important;
+}
+
+/* Pokud je formulář a seznam ve dvou obdélnících, vizuálně je spojíme. */
+.kompas-app .expense-section > .card:first-child,
+.kompas-app .vydaje-section > .card:first-child {
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.kompas-app .expense-section > .card:last-child,
+.kompas-app .vydaje-section > .card:last-child {
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+  border-top-width: 0 !important;
+}
+
+/* Zmenšíme i vnitřní odstup mezi "Přidat výdaj" a hlavičkou "Výdaje". */
+.kompas-app .expense-section h2,
+.kompas-app .expense-section h3,
+.kompas-app .vydaje-section h2,
+.kompas-app .vydaje-section h3 {
+  margin-top: 0 !important;
+}
+</style>
+
+
+<style id="vydaje-opravdu-kompaktni">
+/* Pouze stránka Výdaje. Logika, výpočty a ostatní dvě stránky beze změny. */
+#expenses .card {
+  padding: 9px 10px !important;
+  margin-bottom: 6px !important;
+  border-radius: 11px !important;
+}
+
+#expenses .section-title {
+  font-size: 14px !important;
+  margin-bottom: 5px !important;
+  line-height: 1.2 !important;
+}
+
+#expenses label {
+  font-size: 11px !important;
+  margin: 5px 0 3px !important;
+  line-height: 1.2 !important;
+}
+
+#expenses input,
+#expenses select {
+  min-height: 32px !important;
+  height: 32px !important;
+  padding: 4px 8px !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+}
+
+#expenses .form-row {
+  gap: 5px !important;
+}
+
+#expenses .save-row {
+  margin-top: 6px !important;
+}
+
+#expenses .primary {
+  min-height: 32px !important;
+  padding: 5px 9px !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+}
+
+#expenses .note {
+  font-size: 10px !important;
+  line-height: 1.25 !important;
+  margin-top: 3px !important;
+}
+
+/* Pravidelné platby – kompaktnější řádky. */
+#expenses #recurringList {
+  margin-top: 5px !important;
+}
+
+#expenses #recurringList > * {
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+}
+
+/* Přidat výdaj + Výdaje = jeden společný blok bez bílé mezery. */
+#expenses > .card:nth-of-type(3) {
+  margin-bottom: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+#expenses > .card:nth-of-type(4) {
+  margin-top: 0 !important;
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+  border-top: 0 !important;
+}
+
+#expenses > .card:nth-of-type(4) .section-title {
+  margin-top: 0 !important;
+}
+
+#expenses .month-head {
+  padding: 1px 0 4px !important;
+  margin-bottom: 3px !important;
+}
+
+#expenses .expenses-wrap {
+  max-height: none !important;
+  overflow: visible !important;
+  padding-right: 0 !important;
+}
+
+#expenses .expense-group {
+  margin: 4px 0 !important;
+  border-radius: 8px !important;
+}
+
+#expenses .group-head {
+  padding: 6px 8px !important;
+  min-height: 30px !important;
+  font-size: 12px !important;
+}
+
+#expenses .expense-row {
+  padding: 5px 8px !important;
+  gap: 5px !important;
+}
+
+#expenses .expense-name {
+  font-size: 12px !important;
+}
+
+#expenses .expense-meta {
+  font-size: 10px !important;
+  margin-top: 1px !important;
+}
+
+#expenses .expense-amount {
+  font-size: 12px !important;
+}
+
+#expenses .row-actions {
+  margin-top: 2px !important;
+}
+
+#expenses .secondary,
+#expenses .danger {
+  padding: 4px 6px !important;
+  font-size: 11px !important;
+}
+
+/* Kategorie zůstane jako jedna souvislá bublina. */
+#expenses #expenseCategory {
+  border-radius: 8px !important;
+}
+</style>
+
+
+<style id="warm-painted-design">
+:root{
+  --bg:#f4efe5;
+  --card:#fffaf2;
+  --text:#4a433b;
+  --muted:#796f63;
+  --line:#ded4c5;
+  --accent:#71805f;
+  --accent-soft:#e7ecdf;
+  --danger:#9b6256;
+  --radius:14px;
+}
+body{
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255,255,255,.65), transparent 28%),
+    radial-gradient(circle at 90% 18%, rgba(219,207,182,.24), transparent 26%),
+    var(--bg) !important;
+  color:var(--text) !important;
+}
+.app{max-width:690px;padding:12px 10px 26px}
+header{padding:4px 4px 12px}
+h1{color:#514a42;font-size:23px}
+.subtitle{color:#85796c;font-size:13px}
+
+.tabs{
+  background:#e8e1d5 !important;
+  border:1px solid #d8cdbc;
+  padding:4px;
+  margin-bottom:10px;
+}
+.tab{padding:9px 6px;color:#766d62}
+.tab.active{
+  background:#fdf8ef !important;
+  color:#56624a !important;
+  box-shadow:0 1px 4px rgba(74,58,40,.10) !important;
+}
+
+.card{
+  background:rgba(255,250,242,.94) !important;
+  border-color:var(--line) !important;
+  border-radius:12px !important;
+  box-shadow:0 2px 8px rgba(76,61,44,.05) !important;
+  padding:12px !important;
+  margin-bottom:9px !important;
+}
+.section-title{color:#554c43;font-size:16px}
+label{color:#5c554d}
+input,select{
+  background:#fffdf8 !important;
+  border-color:#d7cdbc !important;
+  color:#4e473f !important;
+  min-height:34px !important;
+  height:34px !important;
+  padding:5px 9px !important;
+  border-radius:8px !important;
+}
+input:focus,select:focus{
+  border-color:#7d8d69 !important;
+  box-shadow:0 0 0 3px rgba(125,141,105,.14) !important;
+}
+.primary{
+  background:#71805f !important;
+  min-height:34px !important;
+  padding:7px 10px !important;
+  border-radius:8px !important;
+}
+.secondary{
+  background:#faf4eb !important;
+  border-color:#d9cebd !important;
+  color:#62584e !important;
+}
+.danger{color:#986259 !important}
+
+.safe{
+  background:#e9eee1 !important;
+  border-color:#d5dec9 !important;
+}
+.safe .big{color:#56634b}
+.metric{min-height:86px}
+.big{font-size:25px;color:#544b42}
+.safe .big{font-size:29px}
+.note{color:#81766a}
+
+.home-warm-card{
+  padding-top:8px !important;
+  overflow:hidden;
+}
+.home-illustration{
+  height:74px;
+  margin:-8px -12px 7px;
+  overflow:hidden;
+  background:linear-gradient(180deg,#f0eadf 0%,#f7f0e4 65%,#e6ddcc 65%,#e6ddcc 100%);
+  border-radius:12px 12px 0 0;
+}
+.home-illustration svg{width:100%;height:100%;display:block}
+
+.wishes-card{
+  padding-top:8px !important;
+  overflow:hidden;
+}
+.wishes-illustration{
+  height:74px;
+  margin:-8px -12px 7px;
+  overflow:hidden;
+  background:linear-gradient(180deg,#f2ecdf 0%,#faf4e8 72%,#e7ddcc 72%,#e7ddcc 100%);
+  border-radius:12px 12px 0 0;
+}
+.wishes-illustration svg{width:100%;height:100%;display:block}
+
+#expenses .card{padding:9px !important;margin-bottom:5px !important}
+#expenses .section-title{font-size:14px !important}
+#expenses label{font-size:11px !important}
+#expenses input,#expenses select{min-height:32px !important;height:32px !important;padding:4px 8px !important}
+#expenses .primary{min-height:32px !important;padding:5px 9px !important}
+#expenses .expense-group{border-color:#ddd2c2 !important;background:#fffaf2}
+#expenses .group-head{background:#f1eadf !important;padding:7px 9px !important}
+#expenses .group-body{border-top-color:#ddd2c2 !important}
+#expenses .expense-row{border-bottom-color:#e2d8ca !important;padding:6px 9px !important}
+#expenses .month-head{background:transparent !important;border-bottom-color:#d9cfc0 !important}
+
+.pig{
+  padding:6px 0 !important;
+  border-bottom-color:#ded4c5 !important;
+}
+.pig-name,.pig-amount{color:#574d44}
+</style>
+
+
+<style id="FINAL-COMPACT-FIX">
+/* Poslední úprava: opravdu menší celá stránka Výdaje.
+   Nemění se obsah ani JavaScript. */
+.app{
+  max-width:560px !important;
+}
+
+#expenses{
+  max-width:560px !important;
+  margin-left:auto !important;
+  margin-right:auto !important;
+}
+
+#expenses .card{
+  padding:7px 8px !important;
+  margin-bottom:4px !important;
+  border-radius:9px !important;
+}
+
+#expenses .section-title{
+  font-size:13px !important;
+  margin-bottom:4px !important;
+  line-height:1.15 !important;
+}
+
+#expenses .note{
+  font-size:9px !important;
+  line-height:1.2 !important;
+  margin-top:2px !important;
+}
+
+#expenses label{
+  font-size:10px !important;
+  margin:3px 0 2px !important;
+  line-height:1.15 !important;
+}
+
+#expenses input,
+#expenses select{
+  min-height:28px !important;
+  height:28px !important;
+  padding:3px 7px !important;
+  border-radius:7px !important;
+  font-size:12px !important;
+}
+
+#expenses .form-row{
+  gap:4px !important;
+}
+
+#expenses .save-row{
+  margin-top:4px !important;
+}
+
+#expenses .primary{
+  min-height:28px !important;
+  height:28px !important;
+  padding:4px 7px !important;
+  border-radius:7px !important;
+  font-size:12px !important;
+}
+
+#expenses #recurringList{
+  margin-top:3px !important;
+}
+
+#expenses #recurringList .pig{
+  padding:3px 0 !important;
+  min-height:0 !important;
+  gap:5px !important;
+}
+
+#expenses #recurringList .pig-name,
+#expenses #recurringList .pig-amount{
+  font-size:12px !important;
+  line-height:1.15 !important;
+}
+
+#expenses #recurringList .pig-meta{
+  font-size:9px !important;
+  margin-top:1px !important;
+  line-height:1.1 !important;
+}
+
+#expenses #recurringList .danger{
+  padding:2px 3px !important;
+  font-size:10px !important;
+}
+
+#expenses > .card:nth-of-type(3){
+  margin-bottom:0 !important;
+  border-bottom-left-radius:0 !important;
+  border-bottom-right-radius:0 !important;
+}
+
+#expenses > .card:nth-of-type(4){
+  margin-top:0 !important;
+  border-top:0 !important;
+  border-top-left-radius:0 !important;
+  border-top-right-radius:0 !important;
+  padding-top:5px !important;
+}
+
+#expenses .expense-group{
+  margin:2px 0 !important;
+  border-radius:7px !important;
+}
+
+#expenses .group-head{
+  min-height:25px !important;
+  padding:4px 6px !important;
+  font-size:10px !important;
+}
+
+#expenses .expense-row{
+  min-height:27px !important;
+  padding:3px 6px !important;
+  gap:4px !important;
+}
+
+#expenses .expense-name,
+#expenses .expense-amount{
+  font-size:10px !important;
+  line-height:1.15 !important;
+}
+
+#expenses .expense-meta{
+  font-size:8px !important;
+  margin-top:1px !important;
+  line-height:1.1 !important;
+}
+
+#expenses .row-actions{
+  margin-top:1px !important;
+}
+
+#expenses .row-actions .danger{
+  padding:2px 3px !important;
+  font-size:9px !important;
+}
+</style>
+
+
+<style id="four-tabs-layout">
+.tabs{
+  grid-template-columns:repeat(4,1fr) !important;
+}
+#other-expenses{
+  max-width:560px !important;
+  margin-left:auto !important;
+  margin-right:auto !important;
+}
+#other-expenses .card{
+  padding:7px 8px !important;
+  margin-bottom:4px !important;
+  border-radius:9px !important;
+}
+#other-expenses .section-title{
+  font-size:13px !important;
+  margin-bottom:4px !important;
+  line-height:1.15 !important;
+}
+#other-expenses label{
+  font-size:10px !important;
+  margin:3px 0 2px !important;
+  line-height:1.15 !important;
+}
+#other-expenses input,
+#other-expenses select{
+  min-height:28px !important;
+  height:28px !important;
+  padding:3px 7px !important;
+  border-radius:7px !important;
+  font-size:12px !important;
+}
+#other-expenses .form-row{gap:4px !important}
+#other-expenses .save-row{margin-top:4px !important}
+#other-expenses .primary{
+  min-height:28px !important;
+  height:28px !important;
+  padding:4px 7px !important;
+  font-size:12px !important;
+  border-radius:7px !important;
+}
+#other-expenses .card:last-child{
+  margin-top:0 !important;
+}
+#other-expenses .expense-group{
+  margin:2px 0 !important;
+  border-radius:7px !important;
+}
+#other-expenses .group-head{
+  min-height:25px !important;
+  padding:4px 6px !important;
+  font-size:10px !important;
+}
+#other-expenses .expense-row{
+  min-height:27px !important;
+  padding:3px 6px !important;
+  gap:4px !important;
+}
+#other-expenses .expense-name,
+#other-expenses .expense-amount{font-size:10px !important}
+#other-expenses .expense-meta{font-size:8px !important}
+#other-expenses .row-actions{margin-top:1px !important}
+#other-expenses .row-actions .danger{padding:2px 3px !important;font-size:9px !important}
+@media(max-width:520px){
+  .tabs{grid-template-columns:repeat(2,1fr) !important}
+}
+</style>
+
+
+<style id="v3-ux-cleanup">
+.tabs{grid-template-columns:repeat(4,1fr)!important}
+@media(max-width:520px){.tabs{grid-template-columns:repeat(2,1fr)!important}}
+#other-expenses{max-width:560px!important;margin:0 auto}
+#other-expenses .card,#expenses .card{padding:9px!important;margin-bottom:5px!important;border-radius:10px!important}
+#other-expenses input,#other-expenses select,#other-expenses .primary,
+#expenses input,#expenses select,#expenses .primary{min-height:32px!important;height:32px!important;padding:4px 8px!important;font-size:12px!important}
+.expense-search-row{display:grid;grid-template-columns:1fr auto;gap:5px;margin:4px 0}
+.expense-search-row button{min-height:32px!important;height:32px!important;padding:4px 7px!important;font-size:11px!important}
+#other-expenses .expenses-wrap{max-height:none!important;overflow:visible!important;padding:0!important}
+#other-expenses .month-group{border:1px solid #d9d0c3;border-radius:9px;overflow:hidden;margin:3px 0;background:#fffaf2}
+#other-expenses .month-head{width:100%;display:flex;justify-content:space-between;align-items:center;border:0;background:#ebe4d7;color:#514a42;padding:6px 8px!important;min-height:28px!important;font-size:11px!important}
+#other-expenses .month-body{display:none;padding:3px;border-top:1px solid #d9d0c3}
+#other-expenses .month-group.open .month-body{display:block}
+#other-expenses .expense-group{margin:2px 0!important;border-radius:7px}
+#other-expenses .group-head{min-height:26px!important;padding:4px 7px!important;font-size:10px!important}
+#other-expenses .expense-row{min-height:30px!important;padding:3px 7px!important;gap:4px!important}
+#other-expenses .expense-name,#other-expenses .expense-amount{font-size:10px!important}
+#other-expenses .expense-meta{font-size:8px!important}
+#other-expenses .row-actions{display:flex;gap:4px;margin-top:2px!important}
+#other-expenses .row-actions button{min-height:24px!important;height:24px!important;padding:2px 5px!important;font-size:9px!important}
+#expenses #recurringList .pig{padding:5px 0!important}
+#expenses #recurringList .small-actions{justify-content:flex-end}
+.small-actions{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+</style>
+
+<style id="login-layer-style">
+  body.login-mode { overflow:hidden; }
+  #loginLayer { position:fixed; inset:0; z-index:9999; background:linear-gradient(180deg,#f5ead7 0%,#eef1df 100%); display:flex; align-items:center; justify-content:center; padding:18px; }
+  #loginLayer[hidden] { display:none !important; }
+  .login-box { width:min(100%,430px); background:#fffdf8; border:1px solid #ded1bb; border-radius:24px; box-shadow:0 12px 35px rgba(88,70,42,.12); padding:26px 22px 22px; color:#4a3b2a; }
+  .login-house { text-align:center; font-size:48px; line-height:1; margin-bottom:8px; }
+  .login-box h1 { margin:0; text-align:center; font-size:25px; color:#5c4630; }
+  .login-sub { text-align:center; color:#776b5e; margin:8px 0 22px; line-height:1.4; font-size:14px; }
+  .login-box label { display:block; margin:12px 0 6px; font-weight:700; font-size:14px; }
+  .login-box input { width:100%; padding:12px 13px; border:1px solid #cfc2ad; border-radius:11px; font-size:16px; background:#fff; }
+  .login-box .login-primary { width:100%; margin-top:18px; background:#58704a; color:#fff; padding:12px 15px; border-radius:11px; font-weight:700; }
+  .login-box .login-secondary { width:100%; margin-top:8px; background:#eee5d7; color:#5c4630; padding:10px 15px; border-radius:11px; }
+  .login-note { margin-top:14px; padding:10px 12px; border-radius:11px; background:#f3efe7; color:#746858; font-size:12px; line-height:1.4; }
+  .login-error { margin-top:10px; color:#8a3d2f; font-size:13px; min-height:18px; }
+  .login-switch { text-align:center; margin-top:14px; font-size:13px; color:#746858; }
+  .login-link { border:0; background:none; color:#58704a; padding:0; font-weight:700; cursor:pointer; font-size:13px; }
+  .login-brand { text-align:center; color:#8b7a65; font-size:12px; margin-top:18px; }
+</style>
+
+
+<style>
+.current-member-bar{
+  background:#eef5e9;border:1px solid #d5e4cc;border-radius:12px;
+  padding:8px 10px;margin-bottom:10px;color:#4d633f;font-size:13px;
+  display:flex;align-items:center;gap:5px;flex-wrap:wrap
+}
+.current-member-bar button{
+  margin-left:auto;padding:5px 8px;font-size:12px;background:#fff;
+  color:#5f4a32;border:1px solid #d8c9b1
+}
+.member-chooser{
+  position:fixed;inset:0;background:rgba(60,45,30,.28);z-index:9999;
+  display:flex;align-items:center;justify-content:center;padding:18px
+}
+.member-chooser-box{
+  width:min(440px,100%);background:#fffaf1;border:1px solid #ead9bd;
+  border-radius:18px;padding:18px;box-shadow:0 12px 35px rgba(50,35,20,.2)
+}
+.member-chooser-box h2{margin:0 0 7px;color:#5f4a32;font-size:20px}
+.member-chooser-box p{margin:0 0 14px;color:#786b5c;font-size:13px;line-height:1.45}
+.member-choice{
+  width:100%;text-align:left;margin:5px 0;padding:11px 13px;
+  background:#eef5e9;color:#4d633f;border:1px solid #d5e4cc;border-radius:11px
+}
+.member-choice:hover{background:#e3eedc}
+</style>
+
+
+<style>
+.undo-toast{
+  position:fixed;left:50%;bottom:78px;transform:translateX(-50%);
+  width:min(520px,calc(100% - 28px));background:#fffaf1;
+  border:1px solid #d9c39d;border-radius:14px;padding:11px 13px;
+  box-shadow:0 7px 24px rgba(60,45,30,.18);z-index:10001;
+  display:flex;align-items:center;gap:9px;font-size:13px;color:#5f4a32
+}
+.undo-toast button{margin-left:auto;padding:7px 10px;background:#eef5e9;color:#4d633f}
+.history-card{background:#fffaf1;border:1px solid #ead9bd;border-radius:16px;padding:15px;margin-top:14px}
+.history-card h2{margin:0 0 7px;font-size:18px;color:#5f4a32}
+.history-item{padding:9px 0;border-bottom:1px solid #eadfce;font-size:13px}
+.history-item:last-child{border-bottom:0}
+.history-meta{color:#887765;font-size:11px;margin-top:3px}
+.history-item button{margin-top:6px;padding:6px 9px;font-size:12px;background:#eef5e9;color:#4d633f}
+</style>
+
+
+<style>
+.online-plan{
+  background:#f3eadc;border:1px solid #dfc9a8;color:#5f4a32;
+  border-radius:12px;padding:9px 11px;margin:0 0 12px;font-size:12px;
+  line-height:1.45
+}
+.online-plan strong{color:#4d633f}
+</style>
+</head>
+<body class="login-mode">
+<div id="loginLayer">
+  <div class="login-box">
+    <div class="login-house">🏠</div>
+    <h1>Rodinný finanční kompas</h1>
+    <div class="login-sub" id="loginSubtitle">Váš rodinný rozpočet na jednom místě.</div>
+
+    <form id="loginForm">
+      <div id="setupFields">
+        <label for="ownerEmail">E-mail zakladatele</label>
+        <input id="ownerEmail" type="email" autocomplete="email" placeholder="např. jana@email.cz" required>
+
+        <label for="familyName">Název domácnosti</label>
+        <input id="familyName" type="text" maxlength="40" autocomplete="organization" placeholder="např. Novákovi" required>
+      </div>
+
+      <label for="memberName">Kdo se přihlašuje?</label>
+      <input id="memberName" type="text" maxlength="40" autocomplete="name" placeholder="např. Táta" required>
+
+      <label for="familyLogin">Uživatelské jméno rodiny</label>
+      <input id="familyLogin" type="text" maxlength="40" autocomplete="username" placeholder="např. novakovi" required>
+
+      <label for="familyPassword">Společné heslo</label>
+      <input id="familyPassword" type="password" minlength="10" autocomplete="new-password" placeholder="alespoň 10 znaků" required>
+
+      <button class="login-primary" type="submit" id="loginSubmit">Vytvořit rodinný Kompas</button>
+      <button class="login-secondary" type="button" id="loginSwitch">Už máme Kompas – přihlásit se</button>
+      <div class="login-error" id="loginError" aria-live="polite"></div>
+    </form>
+
+    <div class="login-note">E-mail zakladatele je kotva domácnosti. Rodina má společné uživatelské jméno a heslo; při přihlášení si každý vybere své jméno. Data se ukládají na server a po přihlášení jsou stejná na telefonu i počítači.</div>
+    <div class="login-brand">Jednoduše pro celou domácnost</div>
+  </div>
+</div>
+
+<div class="app">
+<style>
+  .family-members-card{background:#fffaf1;border:1px solid #ead9bd;border-radius:16px;padding:16px;margin:0 0 14px}
+  .family-members-card h2{margin:0 0 6px;font-size:18px;color:#5f4a32}
+  .family-members-card .hint{font-size:13px;color:#786b5c;margin-bottom:10px}
+  .member-add{display:flex;gap:7px;margin-top:8px}
+  .member-add input{flex:1;min-width:0}
+  .member-add button{white-space:nowrap}
+  .member-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .member-chip{display:flex;align-items:center;gap:6px;background:#eef5e9;border:1px solid #d5e4cc;border-radius:999px;padding:6px 9px;font-size:13px;color:#4d633f}
+  .member-chip button{padding:2px 5px;border-radius:50%;font-size:12px;background:#fff;color:#8a5b4a}
+  .member-count{font-size:12px;color:#887765;margin-top:8px}
+  @media(max-width:520px){.member-add button{padding:10px 11px;font-size:14px}}
+</style>
+
+
+<div class="card" id="syncSettingsCard" style="display:none">
+  <h2>Online účet a synchronizace</h2>
+  <p class="muted" style="font-size:13px">
+    Rodinný Kompas bude později spojený s e-mailem zakladatele. Všichni členové rodiny
+    budou používat stejný rodinný prostor a změny se budou synchronizovat mezi zařízeními.
+  </p>
+  <div class="notice">
+    <strong>Stav:</strong> připraveno k napojení na zabezpečený server.
+  </div>
+</div>
+
+<div id="familyMembersCard" class="family-members-card" style="display:none">
+  <h2>Členové rodiny</h2>
+  <div class="hint">Každý člen může mít své jméno. Při zapisování výdaje se uloží, kdo ho zadal.</div>
+  <div class="member-add">
+    <input id="newFamilyMember" type="text" maxlength="40"
+           placeholder="Např. Táta"
+           autocomplete="off"
+           inputmode="text">
+    <button type="button" class="secondary" id="addFamilyMember">Přidat člena</button>
+  </div>
+  <div id="familyMemberList" class="member-list"></div>
+  <div id="familyMemberCount" class="member-count"></div>
+</div>
+
+
+<div id="currentMemberBar" style="display:none" class="current-member-bar">
+  <span>👤 Přihlášen:</span> <strong id="currentMemberName"></strong>
+  <button type="button" id="switchMemberBtn">Změnit člena</button>
+  <button type="button" id="logoutBtn" class="secondary">Odhlásit</button>
+</div>
+
+
+<div class="online-plan" id="onlinePlanBanner">
+  <strong>Online účet je zapnutý.</strong><br>
+  Změny se ukládají průběžně na server, takže domácnost používá stejná data na telefonu i počítači.
+</div>
+<header>
+  <h1>Rodinný finanční kompas</h1>
+  <div class="subtitle" id="monthLabel"></div>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" data-page="home">Přehled</button>
+  <button class="tab" data-page="expenses">Pravidelné platby</button>
+  <button class="tab" data-page="other-expenses">Výdaje</button>
+  <button class="tab" data-page="piggy">Kasička</button>
+</nav>
+
+<section class="page active" id="home">
+  <div class="card safe home-warm-card">
+<div class="home-illustration" aria-hidden="true">
+  <svg viewBox="0 0 520 150" role="presentation">
+    <path d="M92 88 L180 22 L268 88 V138 H92 Z" fill="#e6d6bd"/>
+    <path d="M66 86 L180 0 L294 86 L280 100 L180 26 L80 100 Z" fill="#7d8561"/>
+    <rect x="132" y="94" width="48" height="44" rx="3" fill="#7a583f"/>
+    <rect x="202" y="91" width="42" height="30" rx="4" fill="#b6c2a0"/>
+    <path d="M360 116 q28-26 56 0 q28-26 56 0" fill="none" stroke="#8b765e" stroke-width="7" stroke-linecap="round"/>
+    <circle cx="372" cy="66" r="15" fill="#d9c9aa"/>
+    <circle cx="408" cy="54" r="10" fill="#d9c9aa"/>
+    <circle cx="433" cy="73" r="13" fill="#d9c9aa"/>
+    <path d="M35 133 C85 116, 108 128, 150 135 C198 142, 245 121, 292 134 C338 146, 385 125, 455 136"
+          fill="none" stroke="#9a856d" stroke-width="6" stroke-linecap="round"/>
+  </svg>
+</div>
+
+    <div class="metric">
+      <div class="name">Dnes můžete bezpečně utratit</div>
+      <div class="big" id="safeToday">0 Kč</div>
+      <div class="note" id="safeNote">Nejdřív přidejte měsíční příjem.</div>
+    </div>
+  </div>
+  <div class="grid">
+    <div class="card metric"><div class="name">Příjem domácnosti</div><div class="big" id="incomeHome">0 Kč</div></div>
+    <div class="card metric"><div class="name">Zbývá tento měsíc</div><div class="big" id="remainingHome">0 Kč</div></div>
+    <div class="card metric"><div class="name">Utraceno tento měsíc</div><div class="big" id="spentHome">0 Kč</div></div>
+    <div class="card metric"><div class="name">Kasičky</div><div class="big" id="piggyHome">0 Kč</div></div>
+  </div>
+  <div class="card">
+    <div class="section-title">Jak to funguje</div>
+    <div class="note">Na této stránce nic nemusíte vyplňovat. Čísla se počítají sama z příjmu a výdajů.</div>
+  </div>
+</section>
+
+<section class="page" id="expenses">
+  <div class="card">
+    <div class="section-title">Příjem domácnosti</div>
+    <label for="monthlyIncome">Kolik domácnost dostane měsíčně?</label>
+    <input id="monthlyIncome" type="number" inputmode="numeric" min="0" step="1" placeholder="Např. 30000">
+    <div class="save-row"><button class="primary" id="saveIncome">Uložit příjem</button></div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Pravidelné měsíční platby</div>
+    <div class="note">Sem patří nájem, energie, pojištění a další platby, které se opakují každý měsíc. Automaticky se započítají do přehledu.</div>
+    <label for="recurringName">Za co?</label>
+    <input id="recurringName" type="text" maxlength="50" placeholder="Např. Nájem">
+    <div class="form-row">
+      <div><label for="recurringAmount">Kolik měsíčně?</label><input id="recurringAmount" type="number" inputmode="numeric" min="0" step="1" placeholder="12000"></div>
+      <div><label for="recurringDay">Který den?</label><input id="recurringDay" type="number" inputmode="numeric" min="1" max="31" placeholder="15"></div>
+    </div>
+    <div class="save-row"><button class="primary" id="addRecurring">Přidat pravidelnou platbu</button></div>
+    <div id="recurringList"></div>
+  </div>
+
+</section>
+
+<section class="page" id="other-expenses">
+  <div class="card">
+    <div class="section-title">Přidat výdaj</div>
+    <label for="expenseName">Za co?</label>
+    <input id="expenseName" type="text" maxlength="50" placeholder="Např. nákup potravin">
+    <div class="form-row">
+      <div><label for="expenseAmount">Kolik?</label><input id="expenseAmount" type="number" inputmode="numeric" min="0" step="1" placeholder="500"></div>
+      <div><label for="expenseDate">Datum</label><input id="expenseDate" type="date"></div>
+    </div>
+    <label for="expenseCategory">Kam to patří?</label>
+    <select id="expenseCategory">
+      <option>Potraviny</option><option>Bydlení</option><option>Auto</option><option>Doprava</option>
+      <option>Drogerie</option><option>Oblečení</option><option>Zdraví</option><option>Děti</option>
+      <option>Zábava</option><option>Škola</option><option>Ostatní</option>
+    </select>
+    <label for="expenseNote">Poznámka <span class="note">(volitelné, max. 80 znaků)</span></label>
+    <input id="expenseNote" type="text" maxlength="80" placeholder="Krátká poznámka">
+    <div class="save-row"><button class="primary" id="addExpense">Přidat výdaj</button></div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Výdaje</div>
+    <div class="expense-search-row">
+      <input id="expenseSearch" type="search" maxlength="80" placeholder="Hledat výdaj, datum, rok nebo kategorii">
+      <button class="secondary" id="clearExpenseSearch" type="button">Zrušit</button>
+    </div>
+    <div class="note" id="expenseSearchInfo"></div>
+    <div class="expenses-wrap" id="expenseList"></div>
+  </div></section>
+
+
+<section class="page" id="piggy">
+  <div class="card wishes-card">
+<div class="wishes-illustration" aria-hidden="true">
+  <svg viewBox="0 0 520 150" role="presentation">
+    <path d="M65 112 C78 88 108 82 128 99 C144 72 188 73 201 104 C224 83 260 91 266 116"
+          fill="#e8ddc8"/>
+    <path d="M252 116 C264 91 298 85 316 104 C333 78 375 82 385 108 C410 91 446 99 455 120"
+          fill="#efe7d8"/>
+    <path d="M96 45 l5 12 13 2-10 9 3 13-11-7-12 7 3-13-10-9 13-2z" fill="#8b8560"/>
+    <path d="M262 30 l4 10 11 2-8 7 3 11-10-6-10 6 3-11-8-7 11-2z" fill="#9a7657"/>
+    <path d="M420 42 l5 12 13 2-10 9 3 13-11-7-12 7 3-13-10-9 13-2z" fill="#8b8560"/>
+    <path d="M175 40 q22-15 44 0" fill="none" stroke="#a98f72" stroke-width="5" stroke-linecap="round"/>
+    <path d="M332 50 q20-13 39 0" fill="none" stroke="#a98f72" stroke-width="5" stroke-linecap="round"/>
+  </svg>
+</div>
+
+    <div class="section-title">Kasička</div>
+    <div class="note">Sem si můžete odkládat peníze na budoucí cíle. Kasička se nezapočítává do útrat.</div>
+  </div>
+  <div class="card">
+    <div class="section-title">Nový cíl</div>
+    <label for="piggyName">Na co spoříte?</label>
+    <input id="piggyName" type="text" maxlength="50" placeholder="Např. Dovolená">
+    <label for="piggyTarget">Kolik chcete mít?</label>
+    <input id="piggyTarget" type="number" inputmode="numeric" min="0" step="1" placeholder="20000">
+    <label for="piggySaved">Kolik už máte odloženo?</label>
+    <input id="piggySaved" type="number" inputmode="numeric" min="0" step="1" placeholder="5000">
+    <div class="save-row"><button class="primary" id="addPiggy">Přidat do kasičky</button></div>
+  </div>
+  <div class="card"><div id="piggyList"></div></div>
+</section>
+</div>
+
+<script>
+const KEY="rfk_simple_v1";
+const defaultData={income:0,expenses:[],piggies:[],recurring:[]};
+let data=load();
+
+function load(){
+  try{
+    const x=JSON.parse(localStorage.getItem(KEY)||"null");
+    if(!x)return structuredClone(defaultData);
+    return {income:Number(x.income)||0,expenses:Array.isArray(x.expenses)?x.expenses:[],piggies:Array.isArray(x.piggies)?x.piggies:[],recurring:Array.isArray(x.recurring)?x.recurring:[]};
+  }catch(e){return structuredClone(defaultData)}
+}
+let saveChain=Promise.resolve();
+function save(){
+  const snapshot=JSON.parse(JSON.stringify(data));
+  renderAll();
+  if(!window.kompasOnline) return;
+  saveChain=saveChain.then(async()=>{
+    const r=await fetch("/api/data",{method:"PUT",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({payload:snapshot})});
+    if(!r.ok){
+      let msg="Změnu se nepodařilo uložit.";
+      try{const x=await r.json();if(x.error)msg=x.error}catch(e){}
+      throw new Error(msg);
+    }
+    window.kompasOnlineLastSaved=new Date();
+    return await r.json();
+  }).catch(async(err)=>{
+    console.error(err);
+    alert("Pozor: " + err.message + "\n\nKompas načte poslední bezpečně uložená data ze serveru.");
+    try{
+      const r=await fetch("/api/data",{credentials:"same-origin"});
+      if(r.ok){const x=await r.json(); data=normalizeOnlineData(x.payload||{}); renderAll();}
+    }catch(e){}
+    return null;
+  });
+  return saveChain;
+}
+function normalizeOnlineData(x){
+  x=x&&typeof x==="object"?x:{};
+  return {income:Number(x.income)||0,expenses:Array.isArray(x.expenses)?x.expenses:[],piggies:Array.isArray(x.piggies)?x.piggies:[],recurring:Array.isArray(x.recurring)?x.recurring:[]};
+}
+function money(n){return Math.round(Number(n)||0).toLocaleString("cs-CZ")+" Kč"}
+function today(){return new Date().toISOString().slice(0,10)}
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function monthKey(d){return String(d).slice(0,7)}
+function currentMonth(){return today().slice(0,7)}
+function monthDaysLeft(){
+  const n=new Date(); const end=new Date(n.getFullYear(),n.getMonth()+1,0); 
+  return Math.max(1,end.getDate()-n.getDate()+1);
+}
+function recurringDueLaterThisMonth(){
+  const now=new Date();
+  const todayDay=now.getDate();
+  const y=now.getFullYear();
+  const m=now.getMonth();
+  const lastDay=new Date(y,m+1,0).getDate();
+
+  return data.recurring.reduce((s,e)=>{
+    const day=Math.min(Math.max(Number(e.day)||1,1),lastDay);
+    return s + (day>=todayDay ? (Number(e.amount)||0) : 0);
+  },0);
+}
+function recurringTotal(){
+  return data.recurring.reduce((s,e)=>s+(Number(e.amount)||0),0)
+}
+function currentSpent(){
+  return data.expenses.filter(e=>monthKey(e.date)===currentMonth()).reduce((s,e)=>s+(Number(e.amount)||0),0)
+}
+function renderHome(){
+  const spent=currentSpent();
+  const futureRecurring=recurringDueLaterThisMonth();
+  const remaining=Math.max(0,data.income-spent-futureRecurring);
+  const safe=remaining/monthDaysLeft();
+  document.getElementById("incomeHome").textContent=money(data.income);
+  document.getElementById("spentHome").textContent=money(spent);
+  document.getElementById("remainingHome").textContent=money(remaining);
+  document.getElementById("safeToday").textContent=money(data.income?safe:0);
+  document.getElementById("piggyHome").textContent=money(data.piggies.reduce((s,p)=>s+(Number(p.saved)||0),0));
+  document.getElementById("safeNote").textContent=data.income
+    ? "Po odečtení výdajů tohoto měsíce a pravidelných plateb, které ještě přijdou."
+    : "Nejdřív přidejte měsíční příjem.";
+}
+function normalizeText(s){
+  return String(s??"").toLocaleLowerCase("cs-CZ").normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+}
+function monthLabel(ym){
+  const [y,m]=String(ym).split("-").map(Number);
+  if(!y||!m)return ym;
+  return new Date(y,m-1,1).toLocaleDateString("cs-CZ",{month:"long",year:"numeric"});
+}
+function validDateString(v){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(v))return false;
+  const [y,m,d]=v.split("-").map(Number);
+  const dt=new Date(y,m-1,d);
+  return dt.getFullYear()===y && dt.getMonth()===m-1 && dt.getDate()===d;
+}
+function expenseRowHtml(e){
+  const dateText=new Date(e.date+"T00:00:00").toLocaleDateString("cs-CZ");
+  return `<div class="expense-row">
+    <div>
+      <div class="expense-name">${esc(e.name)}</div>
+      <div class="expense-meta">${dateText}${e.member?" · 👤 "+esc(e.member):""}${e.note?" · "+esc(e.note):""}</div>
+      <div class="row-actions">
+        <button class="secondary" type="button" onclick="editExpense('${e.id}')">Upravit</button>
+        <button class="danger" type="button" onclick="deleteExpense('${e.id}')">Smazat</button>
+      </div>
+    </div>
+    <div class="expense-amount">${money(e.amount)}</div>
+  </div>`;
+}
+function renderExpenses(){
+  const box=document.getElementById("expenseList");
+  const info=document.getElementById("expenseSearchInfo");
+  const input=document.getElementById("expenseSearch");
+  const q=normalizeText(input?.value||"").trim();
+
+  const arr=[...data.expenses].sort((a,b)=>{
+    const dateSort=String(b.date).localeCompare(String(a.date));
+    return dateSort || String(b.id).localeCompare(String(a.id));
+  });
+
+  let filtered=arr;
+  if(q){
+    filtered=arr.filter(e=>{
+      const d=new Date(e.date+"T00:00:00");
+      const dateText=d.toLocaleDateString("cs-CZ");
+      const monthText=d.toLocaleDateString("cs-CZ",{month:"long",year:"numeric"});
+      const hay=normalizeText([
+        e.name,e.category,e.note,e.date,dateText,monthText,String(d.getFullYear()),String(d.getMonth()+1)
+      ].join(" "));
+      return hay.includes(q);
+    });
+    info.textContent=filtered.length
+      ? `Nalezeno ${filtered.length} ${filtered.length===1?"výdaj":filtered.length<5?"výdaje":"výdajů"}.`
+      : "Nic jsem nenašla.";
+  }else{
+    info.textContent="";
+  }
+
+  if(!filtered.length){
+    box.innerHTML='<div class="empty">'+(q?"Nic neodpovídá hledání.":"Zatím tu nejsou žádné výdaje.")+'</div>';
+    return;
+  }
+
+  // Při hledání zobrazíme rovnou nalezené položky.
+  if(q){
+    box.innerHTML=filtered.map(expenseRowHtml).join("");
+    return;
+  }
+
+  // Běžně: rok/měsíc -> kategorie -> položky. Všechny měsíce jsou zavřené.
+  const months={};
+  filtered.forEach(e=>(months[monthKey(e.date)]??=[]).push(e));
+
+  box.innerHTML=Object.entries(months)
+    .sort(([a],[b])=>b.localeCompare(a))
+    .map(([ym,items])=>{
+      const cats={};
+      items.forEach(e=>(cats[e.category]??=[]).push(e));
+      const total=items.reduce((s,e)=>s+(Number(e.amount)||0),0);
+      return `<div class="month-group">
+        <button class="month-head" type="button" onclick="toggleDetails(this.parentElement)">
+          <span>${esc(monthLabel(ym))} <span class="note">(${items.length})</span></span>
+          <span>${money(total)}</span>
+        </button>
+        <div class="month-body">
+          ${Object.entries(cats).sort(([a],[b])=>a.localeCompare(b,"cs")).map(([cat,catItems])=>{
+            const catTotal=catItems.reduce((s,e)=>s+(Number(e.amount)||0),0);
+            return `<div class="expense-group">
+              <button class="group-head" type="button" onclick="toggleDetails(this.parentElement)">
+                <span class="group-title">${esc(cat)} <span class="note">(${catItems.length})</span></span>
+                <span class="group-total">${money(catTotal)}</span>
+              </button>
+              <div class="group-body">${catItems.map(expenseRowHtml).join("")}</div>
+            </div>`;
+          }).join("")}
+        </div>
+      </div>`;
+    }).join("");
+}
+function toggleDetails(el){el.classList.toggle("open")}
+function renderPiggies(){
+  const box=document.getElementById("piggyList");
+  if(!data.piggies.length){box.innerHTML='<div class="empty">Kasička je zatím prázdná.</div>';return}
+  box.innerHTML=data.piggies.map(p=>{
+    const saved=Number(p.saved)||0,target=Number(p.target)||0;
+    const pct=target?Math.min(100,Math.round(saved/target*100)):"";
+    return `<div class="pig">
+      <div>
+        <div class="pig-name">${esc(p.name)}</div>
+        <div class="pig-meta">${target?money(saved)+" z "+money(target):money(saved)}</div>
+        <div class="small-actions">
+          <button class="secondary" type="button" onclick="editPiggy('${p.id}')">Upravit</button>
+          <button class="secondary" type="button" onclick="addToPiggy('${p.id}')">Přidat peníze</button>
+          <button class="danger" type="button" onclick="deletePiggy('${p.id}')">Smazat</button>
+        </div>
+      </div>
+      <div class="pig-amount">${pct!==""?pct+" %":""}</div>
+    </div>`;
+  }).join("");
+}
+function renderRecurring(){
+  const box=document.getElementById("recurringList");
+  if(!box)return;
+  if(!data.recurring.length){
+    box.innerHTML='<div class="empty">Zatím nejsou přidané žádné pravidelné platby.</div>';
+    return;
+  }
+  box.innerHTML=[...data.recurring].sort((a,b)=>Number(a.day||99)-Number(b.day||99)).map(r=>`
+    <div class="pig">
+      <div>
+        <div class="pig-name">${esc(r.name)}</div>
+        <div class="pig-meta">${Number(r.day)||1}. den v měsíci</div>
+      </div>
+      <div>
+        <div class="pig-amount">${money(r.amount)}</div>
+        <div class="small-actions">
+          <button class="secondary" type="button" onclick="editRecurring('${r.id}')">Upravit</button>
+          <button class="danger" type="button" onclick="deleteRecurring('${r.id}')">Smazat</button>
+        </div>
+      </div>
+    </div>`).join("");
+}
+
+function editRecurring(id){
+  const r=data.recurring.find(x=>String(x.id)===String(id)); if(!r)return;
+  const name=prompt("Za co?",r.name); if(name===null)return;
+  const amountText=prompt("Kolik měsíčně?",String(r.amount)); if(amountText===null)return;
+  const dayText=prompt("Který den v měsíci? (1–31)",String(r.day)); if(dayText===null)return;
+  const amount=Number(amountText), day=Number(dayText);
+  if(!name.trim()||!Number.isFinite(amount)||amount<=0||!Number.isInteger(day)||day<1||day>31){
+    alert("Údaj se nepodařilo upravit. Zkontrolujte název, částku a den 1–31."); return;
+  }
+  r.name=name.trim().slice(0,50); r.amount=amount; r.day=day; save();
+}
+
+function editExpense(id){
+  const e=data.expenses.find(x=>String(x.id)===String(id)); if(!e)return;
+  const name=prompt("Za co?",e.name); if(name===null)return;
+  const amountText=prompt("Kolik?",String(e.amount)); if(amountText===null)return;
+  const date=prompt("Datum (RRRR-MM-DD)",e.date); if(date===null)return;
+  const category=prompt("Kategorie",e.category); if(category===null)return;
+  const note=prompt("Poznámka (max. 80 znaků)",e.note||""); if(note===null)return;
+
+  const amount=Number(amountText);
+  if(!name.trim()||!Number.isFinite(amount)||amount<=0||!validDateString(date)){
+    alert("Výdaj nebyl upraven. Zkontrolujte název, částku a platné datum."); return;
+  }
+  if(!category.trim()){alert("Kategorie nesmí být prázdná.");return;}
+  e.name=name.trim().slice(0,50);
+  e.amount=amount;
+  e.date=date;
+  e.category=category.trim().slice(0,40);
+  e.note=note.trim().slice(0,80);
+  save();
+}
+
+function editPiggy(id){
+  const p=data.piggies.find(x=>String(x.id)===String(id)); if(!p)return;
+  const name=prompt("Na co spoříte?",p.name); if(name===null)return;
+  const targetText=prompt("Kolik chcete mít?",String(p.target||0)); if(targetText===null)return;
+  const savedText=prompt("Kolik už máte odloženo?",String(p.saved||0)); if(savedText===null)return;
+  const target=Number(targetText)||0, saved=Number(savedText)||0;
+  if(!name.trim()||target<0||saved<0||!Number.isFinite(target)||!Number.isFinite(saved)){
+    alert("Cíl nebyl upraven. Zkontrolujte název a částky."); return;
+  }
+  p.name=name.trim().slice(0,50); p.target=target; p.saved=saved; save();
+}
+
+document.getElementById("addRecurring").addEventListener("click",()=>{
+  const name=document.getElementById("recurringName").value.trim();
+  const amount=Number(document.getElementById("recurringAmount").value);
+  const day=Number(document.getElementById("recurringDay").value);
+  if(!name||!Number.isFinite(amount)||amount<=0||!Number.isInteger(day)||day<1||day>31){
+    alert("Vyplňte název, měsíční částku a den (1–31).");return;
+  }
+  data.recurring.push({id:Date.now(),name,amount,day});
+  document.getElementById("recurringName").value="";
+  document.getElementById("recurringAmount").value="";
+  document.getElementById("recurringDay").value="";
+  save();
+});
+function deleteRecurring(id){
+  if(confirm("Opravdu chcete tuto pravidelnou platbu smazat?")){
+    data.recurring=data.recurring.filter(r=>String(r.id)!==String(id));save();
+  }
+}
+function renderAll(){
+  renderRecurring();
+  const now=new Date();
+  document.getElementById("monthLabel").textContent=now.toLocaleDateString("cs-CZ",{month:"long",year:"numeric"});
+  renderHome();renderExpenses();renderPiggies();
+}
+document.querySelectorAll(".tab").forEach(btn=>btn.addEventListener("click",()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
+  btn.classList.add("active");document.getElementById(btn.dataset.page).classList.add("active");
+}));
+document.getElementById("expenseDate").value=today();
+document.getElementById("expenseSearch").addEventListener("input",renderExpenses);
+document.getElementById("clearExpenseSearch").addEventListener("click",()=>{
+  document.getElementById("expenseSearch").value="";
+  renderExpenses();
+});
+document.getElementById("saveIncome").addEventListener("click",()=>{
+  const v=Number(document.getElementById("monthlyIncome").value);
+  if(!Number.isFinite(v)||v<0){alert("Zadejte měsíční příjem.");return}
+  data.income=v;save();
+});
+document.getElementById("addExpense").addEventListener("click",()=>{
+  const name=document.getElementById("expenseName").value.trim();
+  const amount=Number(document.getElementById("expenseAmount").value);
+  const date=document.getElementById("expenseDate").value||today();
+  const category=document.getElementById("expenseCategory").value;
+  const note=document.getElementById("expenseNote").value.trim().slice(0,80);
+  const activeMember=window.kompasCurrentMember?window.kompasCurrentMember():"";
+  if(!activeMember && window.kompasChooseMember){ window.kompasChooseMember(); alert("Nejdříve vyberte, kdo právě zapisuje výdaj."); return; }
+  if(!name||!Number.isFinite(amount)||amount<=0){alert("Vyplňte za co a kolik.");return}
+  if(!validDateString(date)){alert("Vyberte platné datum.");return}
+  data.expenses.push({id:Date.now(),name:name.slice(0,50),amount,date,category,note,member:(window.kompasCurrentMember?window.kompasCurrentMember():"")});
+  document.getElementById("expenseName").value="";
+  document.getElementById("expenseAmount").value="";
+  document.getElementById("expenseNote").value="";
+  save();
+});
+async function deleteExpense(id){
+  data.expenses=data.expenses.filter(e=>String(e.id)!==String(id));
+  const result=await save();
+  if(result&&result.historyId&&window.kompasShowUndo) window.kompasShowUndo(result.historyId);
+}
+document.getElementById("addPiggy").addEventListener("click",()=>{
+  const name=document.getElementById("piggyName").value.trim(),target=Number(document.getElementById("piggyTarget").value)||0,saved=Number(document.getElementById("piggySaved").value)||0;
+  if(!name){alert("Napište, na co spoříte.");return}
+  data.piggies.push({id:Date.now(),name,target,saved});
+  document.getElementById("piggyName").value="";document.getElementById("piggyTarget").value="";document.getElementById("piggySaved").value="";
+  save();
+});
+function addToPiggy(id){
+  const p=data.piggies.find(x=>String(x.id)===String(id));if(!p)return;
+  const v=prompt("Kolik chcete do kasičky přidat?","1000");if(v===null)return;
+  const n=Number(v);if(!Number.isFinite(n)||n<=0)return alert("Zadejte kladné číslo.");
+  p.saved=(Number(p.saved)||0)+n;save();
+}
+function deletePiggy(id){if(confirm("Opravdu chcete tento cíl smazat?")){data.piggies=data.piggies.filter(p=>String(p.id)!==String(id));save()}}
+renderAll();
+</script>
+
+<div id="historyCard" class="history-card" style="display:none">
+  <h2>Historie změn</h2>
+  <div class="muted" style="font-size:13px;margin-bottom:8px">Poslední změny uložené na serveru. U změn je možné obnovit předchozí stav.</div>
+  <div id="historyList"></div>
+</div>
+
+<div id="memberChooser" class="member-chooser" style="display:none">
+  <div class="member-chooser-box">
+    <h2>Kdo právě používá Kompas?</h2>
+    <p>Vyberte své jméno. U každého nového výdaje se uloží, kdo ho zadal.</p>
+    <div id="memberChooserList"></div>
+    <button type="button" class="secondary" id="closeMemberChooser">Zavřít</button>
+  </div>
+</div>
+
+<script id="online-app">
+(function(){
+  const layer=document.getElementById('loginLayer');
+  const form=document.getElementById('loginForm');
+  const setup=document.getElementById('setupFields');
+  const email=document.getElementById('ownerEmail');
+  const familyName=document.getElementById('familyName');
+  const memberName=document.getElementById('memberName');
+  const login=document.getElementById('familyLogin');
+  const password=document.getElementById('familyPassword');
+  const submit=document.getElementById('loginSubmit');
+  const switchBtn=document.getElementById('loginSwitch');
+  const subtitle=document.getElementById('loginSubtitle');
+  const error=document.getElementById('loginError');
+  const memberBar=document.getElementById('currentMemberBar');
+  const memberNameEl=document.getElementById('currentMemberName');
+  const memberListEl=document.getElementById('familyMemberList');
+  const memberCountEl=document.getElementById('familyMemberCount');
+  let setupMode=true;
+  let members=[];
+  let currentMember={id:'',name:''};
+  let loggedIn=false;
+
+  function cleanName(v){return String(v||'').trim().replace(/[.,!?;:"'()[\]{}<>\/\\@#$%^&*+=|~`]/g,'').replace(/\s+/g,' ')}
+  function lettersAndSpacesOnly(v){return /^[\p{L}\p{M} ]+$/u.test(String(v||'').trim())}
+  function normalizeLogin(v){return String(v||'').trim().toLowerCase().replace(/\s+/g,'')}
+  function setError(t){error.textContent=t||''}
+  function openApp(){layer.hidden=true;document.body.classList.remove('login-mode');loggedIn=true;window.kompasOnline=true;loadOnlineState()}
+  function renderMode(){
+    setup.style.display=setupMode?'block':'none';
+    submit.textContent=setupMode?'Vytvořit rodinný Kompas':'Přihlásit se';
+    switchBtn.textContent=setupMode?'Už máme Kompas – přihlásit se':'Chci založit nový rodinný Kompas';
+    subtitle.textContent=setupMode?'Nejdříve vytvořte společný účet pro celou domácnost.':'Přihlaste domácnost a vyberte, kdo právě zapisuje.';
+    password.autocomplete=setupMode?'new-password':'current-password';
+    password.minLength=10;
+    if(!setupMode){email.value='';familyName.value='';}
+    setError('');
+  }
+  async function api(url,options){
+    const r=await fetch(url,Object.assign({credentials:'same-origin'},options||{}));
+    let x={};try{x=await r.json()}catch(e){}
+    if(!r.ok)throw new Error(x.error||'Něco se nepodařilo.');
+    return x;
+  }
+  async function loadOnlineState(){
+    try{
+      const me=await api('/api/me');
+      members=me.members||[];
+      currentMember=members.find(m=>m.id===me.currentMemberId)||members[0]||{id:'',name:''};
+      renderMembers(); renderCurrent(); window.kompasCurrentMember=()=>currentMember.name||'';
+      window.kompasChooseMember=chooseMember; window.kompasMembers=()=>members.map(m=>m.name);
+      const d=await api('/api/data');
+      data=normalizeOnlineData(d.payload||{});
+      renderAll();
+      await renderHistory();
+      if(!currentMember.id) chooseMember();
+    }catch(e){
+      setError(e.message); layer.hidden=false; document.body.classList.add('login-mode'); loggedIn=false; window.kompasOnline=false;
+    }
+  }
+  function renderCurrent(){
+    if(!memberBar||!memberNameEl)return;
+    memberNameEl.textContent=currentMember.name||'';
+    memberBar.style.display=currentMember.name?'flex':'none';
+  }
+  function renderMembers(){
+    if(!memberListEl||!memberCountEl)return;
+    memberListEl.innerHTML='';
+    members.forEach(m=>{
+      const chip=document.createElement('div');chip.className='member-chip';
+      const span=document.createElement('span');span.textContent=m.name;
+      const b=document.createElement('button');b.type='button';b.textContent='×';b.setAttribute('aria-label','Odebrat člena');
+      b.addEventListener('click',()=>removeMember(m));
+      chip.append(span,b);memberListEl.appendChild(chip);
+    });
+    memberCountEl.textContent='Členů: '+members.length+' / 20';
+  }
+  async function addMember(){
+    const input=document.getElementById('newFamilyMember'); if(!input)return;
+    const name=cleanName(input.value);
+    if(!name){alert('Napište jméno člena rodiny.');return}
+    if(!lettersAndSpacesOnly(name)){alert('Jméno může obsahovat jen písmena, diakritiku a mezery.');return}
+    if(members.length>=20){alert('Můžete mít nejvýše 20 členů rodiny.');return}
+    if(members.some(m=>m.name.toLocaleLowerCase('cs-CZ')===name.toLocaleLowerCase('cs-CZ'))){alert('Tento člen už v rodině je.');return}
+    try{const m=await api('/api/members',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});members.push(m);input.value='';renderMembers();}
+    catch(e){alert(e.message)}
+  }
+  async function removeMember(m){
+    if(m.id===currentMember.id){alert('Nelze odebrat právě přihlášeného člena.');return}
+    if(!confirm('Opravdu chcete odebrat člena „'+m.name+'“?'))return;
+    try{await api('/api/members/'+encodeURIComponent(m.id),{method:'DELETE'});members=members.filter(x=>x.id!==m.id);renderMembers();}
+    catch(e){alert(e.message)}
+  }
+  async function chooseMember(){
+    const list=document.getElementById('memberChooserList'),modal=document.getElementById('memberChooser');if(!list||!modal)return;
+    list.innerHTML='';
+    members.forEach(m=>{const b=document.createElement('button');b.type='button';b.className='member-choice';b.textContent='👤 '+m.name;b.onclick=async()=>{try{await api('/api/switch-member',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({memberId:m.id})});currentMember=m;renderCurrent();modal.style.display='none';renderAll();}catch(e){alert(e.message)}};list.appendChild(b)});
+    modal.style.display='flex';
+  }
+  function showUndo(historyId){
+    const old=document.querySelector('.undo-toast');if(old)old.remove();
+    const toast=document.createElement('div');toast.className='undo-toast';
+    const span=document.createElement('span');span.textContent='Výdaj byl smazán.';
+    const b=document.createElement('button');b.type='button';b.textContent='↩ Vrátit zpět';
+    b.onclick=async()=>{try{await api('/api/history/'+encodeURIComponent(historyId)+'/restore',{method:'POST'});toast.remove();await loadOnlineState();}catch(e){alert(e.message)}};
+    toast.append(span,b);document.body.appendChild(toast);setTimeout(()=>toast.remove(),10000);
+  }
+  window.kompasShowUndo=showUndo;
+  async function logout(){try{await api('/api/logout',{method:'POST'});}catch(e){} location.reload()}
+  async function saveHistoryRestore(id){
+    if(!confirm('Vrátit Kompas do stavu před touto změnou?'))return;
+    try{await api('/api/history/'+encodeURIComponent(id)+'/restore',{method:'POST'});await loadOnlineState();alert('Stav byl obnoven.');}
+    catch(e){alert(e.message)}
+  }
+  async function renderHistory(){
+    const card=document.getElementById('historyCard'),list=document.getElementById('historyList');if(!card||!list)return;
+    try{
+      const rows=await api('/api/history');card.style.display=rows.length?'block':'none';list.innerHTML='';
+      rows.forEach(row=>{const el=document.createElement('div');el.className='history-item';
+        const t=document.createElement('div');t.textContent=row.action;const m=document.createElement('div');m.className='history-meta';m.textContent=new Date(row.created_at).toLocaleString('cs-CZ')+' · '+(row.member||'Neznámý člen');el.append(t,m);
+        const b=document.createElement('button');b.type='button';b.textContent='↩ Obnovit stav';b.onclick=()=>saveHistoryRestore(row.id);el.appendChild(b);list.appendChild(el);});
+    }catch(e){console.error(e)}
+  }
+  form.addEventListener('submit',async function(e){
+    e.preventDefault();setError('');submit.disabled=true;
+    try{
+      const l=normalizeLogin(login.value),pw=password.value,mn=cleanName(memberName.value);
+      if(!mn||!lettersAndSpacesOnly(mn))throw new Error('Zadejte jméno člena – jen písmena, diakritiku a mezery.');
+      if(l.length<3||!lettersAndSpacesOnly(login.value))throw new Error('Uživatelské jméno může obsahovat jen písmena, diakritiku a mezery.');
+      if(pw.length<10)throw new Error('Heslo musí mít alespoň 10 znaků.');
+      if(setupMode){
+        const em=email.value.trim(),hn=cleanName(familyName.value);
+        if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em))throw new Error('Zadejte platný e-mail.');
+        if(!hn||!lettersAndSpacesOnly(hn))throw new Error('Název domácnosti může obsahovat jen písmena, diakritiku a mezery.');
+        await api('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em,householdName:hn,username:l,password:pw,firstMember:mn})});
+      }else{
+        await api('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:l,password:pw,memberName:mn})});
+      }
+      openApp();
+    }catch(e){setError(e.message)}finally{submit.disabled=false}
+  });
+  switchBtn.addEventListener('click',()=>{setupMode=!setupMode;renderMode()});
+  document.addEventListener('DOMContentLoaded',()=>{
+    const add=document.getElementById('addFamilyMember'),input=document.getElementById('newFamilyMember'),sw=document.getElementById('switchMemberBtn'),close=document.getElementById('closeMemberChooser'),logoutBtn=document.getElementById('logoutBtn');
+    if(add)add.addEventListener('click',addMember);if(input)input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addMember()}});if(sw)sw.addEventListener('click',chooseMember);if(close)close.addEventListener('click',()=>document.getElementById('memberChooser').style.display='none');if(logoutBtn)logoutBtn.addEventListener('click',logout);
+    // Hide the temporary local backup card; server backups are automatic.
+    const bc=document.getElementById('backupCard');if(bc)bc.style.display='none';
+    renderMode();
+    api('/api/me').then(()=>openApp()).catch(()=>{window.kompasOnline=false;});
+  });
+})();
+</script>
+</body>
+</html>

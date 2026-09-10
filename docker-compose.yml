@@ -1,0 +1,27 @@
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: kompas
+      POSTGRES_USER: kompas
+      POSTGRES_PASSWORD: zmenit-silne-heslo
+    volumes:
+      - kompas_db:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://kompas:zmenit-silne-heslo@db:5432/kompas
+      DATABASE_SSL: "false"
+      SESSION_SECRET: zmenit-zaopravdu-dlouhy-nahodny-retezec
+    depends_on:
+      - db
+    ports:
+      - "3000:3000"
+volumes:
+  kompas_db:

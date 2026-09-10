@@ -1,0 +1,14 @@
+{
+  "name": "rodinny-financni-kompas-online",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {"start":"node server.js"},
+  "dependencies": {
+    "bcryptjs":"^2.4.3",
+    "cookie-session":"^2.1.0",
+    "express":"^5.1.0",
+    "express-rate-limit":"^7.5.0",
+    "helmet":"^8.1.0",
+    "pg":"^8.16.3"
+  }
+}

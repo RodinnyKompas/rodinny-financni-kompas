@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: rodinny-financni-kompas
+    runtime: node
+    plan: starter
+    region: frankfurt
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_SSL
+        value: "true"
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: rodinny-financni-kompas-db
+          property: connectionString
+
+databases:
+  - name: rodinny-financni-kompas-db
+    plan: 0.1c-256mb
+    region: frankfurt
+    postgresMajorVersion: "17"
